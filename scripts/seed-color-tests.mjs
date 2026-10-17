@@ -1,17 +1,16 @@
 import { PrismaClient } from "@prisma/client";
 const p = new PrismaClient();
-const D = (base, off) => { const x = new Date(2026, 9, 17); x.setDate(x.getDate() + off); return x; };
+const D = (m, d) => new Date(2026, m - 1, d);
 const tests = [
-  { name: "تجربة ألوان ذهبي",   type: "general",  start: D(0,-9),  end: D(0,+19) }, // 20/29 ≈ 69% ذهبي
-  { name: "تجربة ألوان برتقالي", type: "private",  start: D(0,-15), end: D(0,+14) }, // 15/30 = 50% برتقالي
-  { name: "تجربة ألوان أحمر",    type: "general",  start: D(0,-28), end: D(0,+1)  }, // 2/30 ≈ 7% أحمر
-  { name: "تجربة ألوان منتهي",   type: "private",  start: new Date(2026,8,1), end: new Date(2026,9,10) }, // منتهي
-  { name: "تجربة ألوان أرضية",   type: "general",  start: D(0,-2),  end: D(0,+4)  }, // 5/7 = 71% لكن ≤5 أيام -> برتقالي
+  { name: "تجربة جديد",    type: "general", start: D(10,17), end: D(11,15) }, // اليوم الأول: فارغ تقريبًا ذهبي
+  { name: "تجربة نصف",     type: "private", start: D(10,2),  end: D(10,31) }, // استهلك 15/30 = 50% برتقالي نصفين
+  { name: "تجربة برتقالي", type: "general", start: D(9,29),  end: D(10,28) }, // استهلك 18/30 = 60% برتقالي
+  { name: "تجربة أحمر",    type: "private", start: D(9,21),  end: D(10,20) }, // استهلك 26/30 = 87% أحمر
+  { name: "تجربة منتهي",   type: "general", start: D(9,1),   end: D(10,10) }, // منتهي أحمر كامل
 ];
-const created = [];
+let i = 0;
 for (const t of tests) {
-  const m = await p.member.create({ data: { ...t, phone: "0770000000" + (created.length + 1) } });
-  created.push(m.id);
-  console.log("created:", m.id, m.name);
+  const m = await p.member.create({ data: { ...t, phone: "0770000001" + i++ } });
+  console.log("created:", m.name, m.start.toISOString().slice(0,10), "->", m.end.toISOString().slice(0,10));
 }
 await p.$disconnect();

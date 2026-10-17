@@ -48,20 +48,21 @@ function getSecondSnapshot(): number | null {
   return currentSecond;
 }
 
-/* ---------- درجة اللون حسب نسبة الأيام المتبقية ----------
-   المربع يمتلئ باللون بحسب ما تبقى من الاشتراك فعليًا:
-   أكثر من نصف الاشتراك متبقٍ  -> ذهبي (باقي الكثير)
-   نصف الاشتراك أو أقل متبقٍ   -> برتقالي (مثال: نصف الاشتراك = نصف تعبئة برتقالية)
-   ربع الاشتراك أو أقل متبقٍ   -> أحمر (قارب على النهاية)
-   منتهي                       -> تعبئة حمراء كاملة
+/* ---------- درجة اللون حسب نفاد الاشتراك ----------
+   المربع يبدأ فارغًا ويمتلئ باللون كلما استُهلكت أيام الاشتراك:
+   استُهلك أقل من نصف الاشتراك    -> ذهبي
+   استُهلك نصفه أو أكثر           -> برتقالي (نصف متبقٍ = نصف تعبئة برتقالية)
+   استُهلك ثلاثة أرباعه أو أكثر   -> أحمر
+   انتهى                          -> تعبئة حمراء كاملة
    مع أرضية أيام قليلة (آخر يومين أحمر دائمًا، وأقل من 5 أيام لا يبقى ذهبيًا)
-   حتى يبقى متناسقًا مع فلتر «قارب على الانتهاء». */
+   للتناسق مع فلتر «قارب على الانتهاء». */
 
 type DaysTone = "good" | "warn" | "bad" | "expired";
 
-function severityFor(r: number, ratio: number): DaysTone {
+function severityFor(r: number, consumed: number): DaysTone {
   if (r <= 0) return "expired";
-  let sev: DaysTone = ratio > 0.5 ? "good" : ratio > 0.25 ? "warn" : "bad";
+  let sev: DaysTone =
+    consumed >= 0.75 ? "bad" : consumed >= 0.5 ? "warn" : "good";
   if (r <= 2) sev = "bad";
   else if (r <= EXPIRING_SOON_DAYS && sev === "good") sev = "warn";
   return sev;
@@ -150,11 +151,13 @@ export default function DaysBar({
   const now = nowSec !== null ? nowSec * 1000 : null;
 
   const r = Math.max(0, remaining);
-  const ratio = total > 0 ? Math.min(1, Math.max(0, r / total)) : 0;
-  // حد أدنى مرئي لشريط التقدم ما دام هناك يوم متبقٍ
-  const pct = r > 0 ? Math.max(3, ratio * 100) : 0;
-  // درجة اللون تتحدد بنسبة الأيام المتبقية من الاشتراك
-  const sev = severityFor(r, ratio);
+  // نسبة ما استُهلك من الاشتراك — المربع يمتلئ بها كلما مرّت الأيام
+  const consumed =
+    total > 0 ? Math.min(1, Math.max(0, (total - r) / total)) : 0;
+  // حد أدنى مرئي للتعبئة حتى يظهر المقياس من اليوم الأول
+  const pct = Math.max(3, consumed * 100);
+  // درجة اللون تتحدد بنسبة الاستهلاك والأيام المتبقية
+  const sev = severityFor(r, consumed);
   const expired = sev === "expired";
   const live = !expired && now !== null;
 
