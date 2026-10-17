@@ -1,0 +1,47 @@
+// تهيئة Cloudflare Workers لنادي KBI
+// OpenNext: يشغّل Next.js كاملًا (SSR + API) على Workers
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+
+  // اسم التطبيق — الرابط سيكون: https://kbi-club.<حسابك>.workers.dev
+  "name": "kbi-club",
+
+  // مخرجات بناء OpenNext (لا تعدّل)
+  // main = غلاف يحقن محرك Prisma WASM ثم يعيد تصدير worker المولّد
+  "main": "worker.ts",
+  "rules": [
+    {
+      "type": "CompiledWasm",
+      "globs": ["**/*.wasm"],
+      "fallthrough": true
+    }
+  ],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+
+  "compatibility_date": "2025-09-23",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // قاعدة بيانات D1 (بديل SQLite على Cloudflare)
+  // بعد إنشاء القاعدة بأمر wrangler d1 create kbi-db
+  // انسخ قيمة database_id من المخرجات والصقها هنا
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "kbi-db",
+      "database_id": "PASTE_YOUR_D1_DATABASE_ID_HERE"
+    }
+  ],
+
+  // متغيرات بيئة المتصفح الخادمي — تجعل db.ts يستخدم D1 بدل SQLite
+  "vars": {
+    "DEPLOY_TARGET": "cloudflare"
+  },
+
+  // سجلات مراقبة من لوحة Cloudflare (Logs)
+  "observability": {
+    "enabled": true
+  }
+}

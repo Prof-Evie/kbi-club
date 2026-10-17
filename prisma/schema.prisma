@@ -1,5 +1,9 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  // محرك WASM (queryCompiler) بدل Rust الثنائي — يتيح العمل على
+  // Cloudflare Workers عبر محوّل D1، ومحليًا عبر محوّل better-sqlite3
+  engineType      = "client"
+  previewFeatures = ["queryCompiler", "driverAdapters"]
 }
 
 datasource db {

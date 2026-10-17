@@ -1,0 +1,15 @@
+{
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/api/auth/login/route": "/api/auth/login",
+  "/api/auth/logout/route": "/api/auth/logout",
+  "/api/auth/me/route": "/api/auth/me",
+  "/api/debug-db/route": "/api/debug-db",
+  "/api/logs/route": "/api/logs",
+  "/api/members/[id]/extend/route": "/api/members/[id]/extend",
+  "/api/members/[id]/route": "/api/members/[id]",
+  "/api/members/route": "/api/members",
+  "/api/route": "/api",
+  "/icon.png/route": "/icon.png",
+  "/page": "/"
+}

@@ -1,8 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
-  /* config options here */
+  // ملاحظة: أزلنا output: "standalone" — نشر Cloudflare يُدار عبر OpenNext
+  // (npm run cf:deploy) بينما التطوير المحلي يعمل كالمعتاد (npm run dev)
   typescript: {
     ignoreBuildErrors: true,
   },

@@ -155,3 +155,28 @@ Work Log:
 Stage Summary:
 - الجذر لم يكن الكود بل خادمًا مجمدًا على نسخة قديمة من القاعدة (حلّه إعادة التشغيل) — ومع إزالة الأحمر القسري وجعل النسبة حية، صار القانون بصريًا بلا أي استثناء: الشريط = المتبقي ÷ الإجمالي، ولونه ينقص مع الوقت سلسًا، والنسبة المعروضة = الشريط نفسه
 - ملاحظة تشغيلية: إذا ظهرت البيانات «مجمدة» مستقبلًا فالسبب المحتمل نفسه — إعادة تشغيل الخادم تحل فورًا
+
+---
+Task ID: 9
+Agent: Main Agent (Z.ai)
+Task: تهيئة ملفات الموقع للنشر على Cloudflare من حاسوب المستخدم — حزمة كاملة جاهزة للتنزيل
+
+Work Log:
+- ثبّتت @opennextjs/cloudflare 1.20.12 + @prisma/adapter-d1 6.19.3 + @prisma/adapter-better-sqlite3 6.19.3 + wrangler 4.151 (+ workers-types) ووحدت إصدارات Prisma الثلاثة على 6.19.3، مع اعتماد سكربتات postinstall (npm)
+- أزلت انهيارات OOM في البناء بقتل عمليات workerd/wrangler المهملة المتراكمة (~1.5GB)
+- جعلت db.ts ثنائي الوضع: على Workers (كشف تلقائي عبر getCloudflareContext من globalThis) يستخدم PrismaD1، ومحليًا better-sqlite3 مع timestampFormat=unixepoch-ms لمطابقة تخزين التواريخ القائم (أعداد صحيحة) — استيراد المحوّل المحلي عبر eval("require") حتى لا يُحزم في Worker
+- schema.prisma: engineType = "client" + previewFeatures queryCompiler/driverAdapters — هذا هو المفتاح الحقيقي: بدون engineType يولّد العميل runtime/library.js (محرك Rust ثنائي لا يعمل على Workers)
+- اكتشفت ثلاث عقبات جذرية وحللتها: (1) العميل يقرأ query_compiler_bg.wasm من القرص عبر fs — لا نظام ملفات في workerd → ترقيع تلقائي scripts/patch-prisma-wasm.mjs بعد كل prisma generate يجعل التحميل من globalThis على Workers وfs محليًا؛ (2) workerd يحظر WebAssembly.Module من بايتات (جرّبت base64 وفشل: "Wasm code generation disallowed by embedder") → worker.ts غلاف يستورد الـwasm عبر قاعدة CompiledWasm في wrangler.jsonc ويضعه في globalThis؛ (3) كاش next build احتفظ بالعميل القديم → بناء نظيف بعد حذف .next/.open-next/.wrangler/tmp
+- محوّل D1 يستنتج نوع العمود من القيمة (الأعداد تصبح Int لا DateTime) → أعدت توليد d1/data.sql بتحويل التواريخ إلى ISO "....+00:00" المطابق لصيغة كتابة المحوّل؛ المحلي يبقى epoch-ms عبر خيار timestampFormat
+- d1/schema.sql من prisma migrate diff — جداول Member وLog متوافقة مع D1
+- تحققت e2e كاملة على Worker محلي (opennextjs-cloudflare preview + D1): دخول BKR/Jihad، قائمة 3 مشتركين بتواريخ صحيحة، إضافة، تمديد +30، حذف، سجل (56 عملية)، الصفحة الرئيسية 200 — كل شيء يعمل عبر D1 فعليًا
+- اختبار انحدار: next dev على :3000 يعمل بعد إعادة التشغيل بالعميل الجديد (better-sqlite3) بنفس البيانات والتواريخ — لم يتغير شيء للمستخدم محليًا
+- أصلحت .env إلى مسار نسبي (file:../db/custom.db — يُحل من مجلد المخطط) ليعمل على أي حاسوب، وأزلت output: standalone من next.config، وسكربت dev في الحزمة بدون tee (توافق ويندوز)
+- حذفت مسار /api/debug-db المؤقت بعد نجاح التشخيص
+- كتبت README-DEPLOY.md عربيًا شاملاً: المتطلبات، 6 خطوات نشر (install → login → d1 create → schema → data → deploy)، التحديث بأمر واحد، النسخ الاحتياطي (cf:backup)، التشغيل المحلي، جدول استكشاف أخطاء، حدود الخطة المجانية
+- حزمت download/kbi-cloudflare-deploy.zip (510KB، 130 ملفًا): src + prisma + db/custom.db + d1 + scripts الترقيع والتصدير + كل ملفات التهيئة + package-lock.json + الدليل — وتحققت بفك ضغط تجريبي
+
+Stage Summary:
+- الحزمة download/kbi-cloudflare-deploy.zip جاهزة: المستخدم يفك الضغط، npm install، wrangler login، d1 create (يلصق database_id في wrangler.jsonc)، ثم npm run cf:deploy — والموقع حي على https://kbi-club.<حسابه>.workers.dev
+- البنية: OpenNext + Workers + D1 (سحابيًا) و next dev + SQLite (محليًا) بنفس الكود بلا أي فروع يدوية
+- ملاحظة: انهيار عند إغلاق next dev (assertion في better-sqlite3 عند exit) — تجميلي فقط بعد إكمال كل العمليات ولا يؤثر على التشغيل
