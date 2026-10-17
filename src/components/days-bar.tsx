@@ -151,18 +151,32 @@ export default function DaysBar({
   const now = nowSec !== null ? nowSec * 1000 : null;
 
   const r = Math.max(0, remaining);
-  // نسبة ما استُهلك من الاشتراك — المربع يمتلئ بها كلما مرّت الأيام
-  const consumed =
+
+  /* حدود الاشتراك بالمللي ثانية: من بداية يوم البداية إلى نهاية يوم الانتهاء.
+     التعبئة محسوبة من الساعة الحية نفسها التي يحركها العدّاد — فتتقدم
+     مع مرور الساعات والدقائق والثواني فعليًا، ولا تنتظر تغيّر اليوم. */
+  const endDayStart = parseDay(end).getTime();
+  const startMs = endDayStart - (Math.max(1, total) - 1) * 86400000;
+  const endMs = endDayStart + 86400000;
+  const totalMs = Math.max(86400000, endMs - startMs);
+
+  // قبل إقلاع العدّاد نعرض قيمة الأيام، وبعدها تصبح التعبئة حية بالثانية
+  const consumedStatic =
     total > 0 ? Math.min(1, Math.max(0, (total - r) / total)) : 0;
+  const consumed =
+    now !== null
+      ? Math.min(1, Math.max(0, (now - startMs) / totalMs))
+      : consumedStatic;
+
   // حد أدنى مرئي للتعبئة حتى يظهر المقياس من اليوم الأول
   const pct = Math.max(3, consumed * 100);
-  // درجة اللون تتحدد بنسبة الاستهلاك والأيام المتبقية
-  const sev = severityFor(r, consumed);
+  // درجة اللون تتبع الاستهلاك الحي، وينقلب المربع «منتهيًا» لحظة وصول العدّاد إلى الصفر
+  const rLive = now !== null && now >= endMs ? 0 : r;
+  const sev = severityFor(rLive, consumed);
   const expired = sev === "expired";
   const live = !expired && now !== null;
 
-  // لحظة الانتهاء الفعلية = نهاية يوم تاريخ الانتهاء (23:59:59.999)
-  const endMs = parseDay(end).getTime() + 86400000 - 1;
+  // العدّاد التنازلي حتى نهاية يوم الانتهاء (منتصف الليل التالي)
   const diff = now !== null ? Math.max(0, endMs - now) : 0;
   const d = Math.floor(diff / 86400000);
   const hh = Math.floor((diff % 86400000) / 3600000);
