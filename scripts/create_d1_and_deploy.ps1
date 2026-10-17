@@ -60,6 +60,32 @@ try {
 } catch {
     $createOut = $_.Exception.Message
 }
+Write-Host "Create output:" -ForegroundColor Gray
+Write-Host $createOut
+
+# Try to parse database_id from output
+$dbId = $null
+if ($createOut -match 'database_id\s*=\s*"?([0-9a-fA-F\-]{36})"?') { $dbId = $matches[1] }
+elseif ($createOut -match 'database_id\s*:\s*"?([0-9a-fA-F\-]{36})"?') { $dbId = $matches[1] }
+elseif ($createOut -match '([0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12})') { $dbId = $matches[1] }
+
+if (-not $dbId) {
+    Write-Host "Could not parse database_id from wrangler output." -ForegroundColor Yellow
+    if ($env:CF_D1_DATABASE_ID) {
+        Write-Host "Found CF_D1_DATABASE_ID in environment; using that value." -ForegroundColor Green
+        $dbId = $env:CF_D1_DATABASE_ID
+    } else {
+        Write-Host "Attempting to list existing D1 databases for debugging..." -ForegroundColor Yellow
+        try {
+            $listOut = & npx wrangler d1 list $accountArg 2>&1
+            Write-Host $listOut
+        } catch {
+            Write-Host "(wrangler d1 list failed)" -ForegroundColor Yellow
+        }
+        Write-Host "ERROR: Unable to create D1 database automatically. Possible causes: insufficient API token permissions (needs Account · D1 Databases: Edit), or D1 is unavailable for this account.\nOptions:\n 1) Create the D1 database manually in Cloudflare dashboard or via 'npx wrangler d1 create <name> --account-id <id>' with a token that has D1 permissions.\n 2) Set environment variable 'CF_D1_DATABASE_ID' to an existing D1 database id and re-run.\n3) Ensure the API token has 'Account: D1 Databases' edit permissions and try again." -ForegroundColor Red
+        exit 1
+    }
+}
 if ($LASTEXITCODE -ne 0) {
     Write-Host $createOut
     ExitWith 4 "Failed to create D1 database. See output above." 
