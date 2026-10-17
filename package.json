@@ -15,11 +15,11 @@
     "cf:build": "node scripts/patch-prisma-wasm.mjs && opennextjs-cloudflare build",
     "cf:preview": "opennextjs-cloudflare preview",
     "cf:deploy": "npm run cf:build && wrangler deploy",
-    "cf:d1-schema-local": "wrangler d1 execute kbi-db --local --file=d1/schema.sql",
-    "cf:d1-schema-remote": "wrangler d1 execute kbi-db --remote -y --file=d1/schema.sql",
-    "cf:d1-data-local": "wrangler d1 execute kbi-db --local -y --file=d1/data.sql",
-    "cf:d1-data-remote": "wrangler d1 execute kbi-db --remote -y --file=d1/data.sql",
-    "cf:backup": "wrangler d1 export kbi-db --remote --output=backup.sql"
+    "cf:d1-schema-local": "wrangler d1 execute kbiclub --local --file=d1/schema.sql",
+    "cf:d1-schema-remote": "wrangler d1 execute kbiclub --remote -y --file=d1/schema.sql",
+    "cf:d1-data-local": "wrangler d1 execute kbiclub --local -y --file=d1/data.sql",
+    "cf:d1-data-remote": "wrangler d1 execute kbiclub --remote -y --file=d1/data.sql",
+    "cf:backup": "wrangler d1 export kbiclub --remote --output=backup.sql"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
