@@ -184,15 +184,6 @@ export default function MemberView({
               </h1>
               <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                 <span
-                  className={`inline-flex items-center h-6 px-2.5 rounded-md border text-xs font-black ${
-                    member.type === "general"
-                      ? "bg-gold/12 text-gold border-gold/30"
-                      : "bg-white/[0.07] text-foreground/80 border-white/15"
-                  }`}
-                >
-                  {member.type === "general" ? t("typeGeneral") : t("typePrivate")}
-                </span>
-                <span
                   className={`inline-flex items-center h-6 px-2.5 rounded-md border text-xs font-black ${statusPill.cls}`}
                 >
                   {statusPill.label}
@@ -239,12 +230,10 @@ export default function MemberView({
             remaining={remaining}
             total={total}
             status={status}
+            type={member.type}
+            end={member.end}
             size="lg"
-            showUnit
           />
-          <p className="mt-2 text-xs text-muted-foreground font-bold">
-            {t("remaining")}
-          </p>
 
           <Separator className="my-4 bg-white/[0.07]" />
 

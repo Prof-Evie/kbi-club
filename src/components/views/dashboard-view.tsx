@@ -485,21 +485,6 @@ function FilterChip({
   );
 }
 
-function TypeBadge({ type }: { type: "general" | "private" }) {
-  const { t } = useLang();
-  return (
-    <span
-      className={`inline-flex items-center h-5.5 px-2 rounded-md border text-[11px] font-black whitespace-nowrap ${
-        type === "general"
-          ? "bg-gold/12 text-gold border-gold/30"
-          : "bg-white/[0.07] text-foreground/80 border-white/15"
-      }`}
-    >
-      {type === "general" ? t("typeGeneral") : t("typePrivate")}
-    </span>
-  );
-}
-
 function MemberCard({
   member,
   deleteMode,
@@ -554,14 +539,11 @@ function MemberCard({
           </span>
         )}
 
-        {/* الاسم + الهاتف + النوع */}
+        {/* الاسم + الهاتف */}
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="font-extrabold text-[15px] truncate">
-              {member.name}
-            </span>
-            <TypeBadge type={member.type} />
-          </div>
+          <span className="font-extrabold text-[15px] truncate block">
+            {member.name}
+          </span>
           <span
             dir="ltr"
             className="block text-xs text-muted-foreground tabular-nums mt-0.5 text-start"
@@ -573,9 +555,15 @@ function MemberCard({
         <ChevronLeft className="size-5 text-muted-foreground/40 group-hover:text-gold/70 transition-colors ltr:rotate-180 shrink-0" />
       </div>
 
-      {/* خط الأيام */}
+      {/* مربع الاشتراك */}
       <div className="mt-2.5 ps-[52px]">
-        <DaysBar remaining={remaining} total={total} status={status} />
+        <DaysBar
+          remaining={remaining}
+          total={total}
+          status={status}
+          type={member.type}
+          end={member.end}
+        />
       </div>
     </div>
   );
