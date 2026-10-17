@@ -221,10 +221,6 @@ export default function MemberView({
               <CalendarPlus className="size-4 text-gold" />
               {t("subscription")}
             </h2>
-            <span className="text-xs text-muted-foreground font-bold tabular-nums">
-              {t("remaining")}{" "}
-              {Math.round((Math.max(0, remaining) / Math.max(1, total)) * 100)}%
-            </span>
           </div>
 
           <DaysBar

@@ -151,10 +151,10 @@ export default function DaysBar({
   const rLive = now !== null && now >= endMs ? 0 : r;
   const expired = rLive <= 0;
   const live = !expired && now !== null;
-  // آخر يومين أحمر دائمًا مهما كانت النسبة (يحمي الاشتراكات القصيرة جدًا)
-  const urgent = !expired && rLive <= 2;
 
-  const pal = expired || urgent ? { main: RED, soft: RED_SOFT } : paletteFor(remain);
+  // اللون يتبع النسبة بحتة — قانون واحد مستمر بلا استثناءات:
+  // كلما مرّ الوقت نقصت النسبة فانتقل اللون سلسًا ذهبي ← برتقالي ← أحمر
+  const pal = expired ? { main: RED, soft: RED_SOFT } : paletteFor(remain);
 
   // عرض الشريط = نسبة الوقت المتبقي، بأرضية 3% حتى يظهر المقياس دائمًا
   const pct = expired ? 100 : Math.max(3, remain * 100);
@@ -244,13 +244,13 @@ export default function DaysBar({
             </div>
           </div>
 
-          {/* الأيام المتبقية */}
+          {/* الأيام المتبقية + النسبة الحية المطابقة للشريط */}
           <div className="text-end shrink-0 flex flex-col items-end gap-1">
             <span className="text-4xl font-black tabular-nums leading-none" style={numStyle}>
               {r}
             </span>
-            <span className="text-[11px] font-bold text-muted-foreground leading-none">
-              {expired ? t("subEnded") : t("daysUnit")}
+            <span className="text-[11px] font-black tabular-nums leading-none" style={numStyle}>
+              {expired ? t("subEnded") : `${Math.round(remain * 100)}%`}
             </span>
           </div>
         </div>
