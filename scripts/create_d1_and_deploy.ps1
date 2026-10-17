@@ -41,9 +41,25 @@ $env:CLOUDFLARE_API_TOKEN = $env:CF_API_TOKEN
 Write-Host "Creating D1 database named 'kbiclub' (non-interactive)..." -ForegroundColor Yellow
 $accountArg = ''
 if ($env:CF_ACCOUNT_ID) { $accountArg = "--account-id $env:CF_ACCOUNT_ID" } elseif ($env:CLOUDFLARE_ACCOUNT_ID) { $accountArg = "--account-id $env:CLOUDFLARE_ACCOUNT_ID" }
-$createCmd = "npx wrangler d1 create kbiclub --yes $accountArg"
+
+Write-Host "wrangler version:" -ForegroundColor Gray
+try { & npx wrangler --version } catch { Write-Host "(wrangler --version failed)" -ForegroundColor Yellow }
+
+Write-Host "wrangler whoami (checks token permissions):" -ForegroundColor Gray
+try {
+    $whoamiOut = & npx wrangler whoami 2>&1
+    Write-Host $whoamiOut
+} catch {
+    Write-Host "(wrangler whoami failed)" -ForegroundColor Yellow
+}
+
+$createCmd = "npx wrangler d1 create kbiclub --yes $accountArg --verbose"
 Write-Host "Running: $createCmd" -ForegroundColor Gray
-$createOut = Invoke-Expression $createCmd 2>&1
+try {
+    $createOut = Invoke-Expression $createCmd 2>&1
+} catch {
+    $createOut = $_.Exception.Message
+}
 if ($LASTEXITCODE -ne 0) {
     Write-Host $createOut
     ExitWith 4 "Failed to create D1 database. See output above." 
