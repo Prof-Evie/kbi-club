@@ -39,8 +39,8 @@ if (-not $env:CF_API_TOKEN) {
 $env:CLOUDFLARE_API_TOKEN = $env:CF_API_TOKEN
 
 Write-Host "Creating D1 database named 'kbiclub' (non-interactive)..." -ForegroundColor Yellow
-$accountArg = ''
-if ($env:CF_ACCOUNT_ID) { $accountArg = "--account-id $env:CF_ACCOUNT_ID" } elseif ($env:CLOUDFLARE_ACCOUNT_ID) { $accountArg = "--account-id $env:CLOUDFLARE_ACCOUNT_ID" }
+$accountArg = $null
+if ($env:CF_ACCOUNT_ID) { $accountArg = $env:CF_ACCOUNT_ID } elseif ($env:CLOUDFLARE_ACCOUNT_ID) { $accountArg = $env:CLOUDFLARE_ACCOUNT_ID }
 
 Write-Host "wrangler version:" -ForegroundColor Gray
 try { & npx wrangler --version } catch { Write-Host "(wrangler --version failed)" -ForegroundColor Yellow }
@@ -53,10 +53,13 @@ try {
     Write-Host "(wrangler whoami failed)" -ForegroundColor Yellow
 }
 
-$createCmd = "npx wrangler d1 create kbiclub --yes $accountArg --verbose"
-Write-Host "Running: $createCmd" -ForegroundColor Gray
+# Build command arguments safely
+$args = @('d1','create','kbiclub','--yes','--verbose')
+if ($accountArg) { $args += @('--account-id',$accountArg) }
+
+Write-Host "Running: npx wrangler $($args -join ' ')" -ForegroundColor Gray
 try {
-    $createOut = Invoke-Expression $createCmd 2>&1
+    $createOut = & npx @args 2>&1
 } catch {
     $createOut = $_.Exception.Message
 }
@@ -77,13 +80,28 @@ if (-not $dbId) {
     } else {
         Write-Host "Attempting to list existing D1 databases for debugging..." -ForegroundColor Yellow
         try {
-            $listOut = & npx wrangler d1 list $accountArg 2>&1
+            $listArgs = @('d1','list','--json')
+            if ($accountArg) { $listArgs += @('--account-id',$accountArg) }
+            $listOut = & npx @listArgs 2>&1
             Write-Host $listOut
+            # try parse JSON and find database named kbiclub
+            try {
+                $json = $listOut | ConvertFrom-Json
+                $match = $json | Where-Object { $_.name -eq 'kbiclub' }
+                if ($match) {
+                    $dbId = $match.id
+                    Write-Host "Found existing kbiclub database with id: $dbId" -ForegroundColor Green
+                }
+            } catch {
+                Write-Host "(could not parse JSON list output)" -ForegroundColor Yellow
+            }
         } catch {
             Write-Host "(wrangler d1 list failed)" -ForegroundColor Yellow
         }
-        Write-Host "ERROR: Unable to create D1 database automatically. Possible causes: insufficient API token permissions (needs Account · D1 Databases: Edit), or D1 is unavailable for this account.\nOptions:\n 1) Create the D1 database manually in Cloudflare dashboard or via 'npx wrangler d1 create <name> --account-id <id>' with a token that has D1 permissions.\n 2) Set environment variable 'CF_D1_DATABASE_ID' to an existing D1 database id and re-run.\n3) Ensure the API token has 'Account: D1 Databases' edit permissions and try again." -ForegroundColor Red
-        exit 1
+        if (-not $dbId) {
+            Write-Host "ERROR: Unable to create D1 database automatically. Possible causes: insufficient API token permissions (needs Account · D1 Databases: Edit), or D1 is unavailable for this account.\nOptions:\n 1) Create the D1 database manually in Cloudflare dashboard or via 'npx wrangler d1 create <name> --account-id <id>' with a token that has D1 permissions.\n 2) Set environment variable 'CF_D1_DATABASE_ID' to an existing D1 database id and re-run.\n3) Ensure the API token has 'Account: D1 Databases' edit permissions and try again." -ForegroundColor Red
+            exit 1
+        }
     }
 }
 if ($LASTEXITCODE -ne 0) {
