@@ -1,0 +1,46 @@
+name: Deploy to Cloudflare
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install Wrangler
+        run: npm install -g wrangler@latest
+
+      - name: Verify Cloudflare auth
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+        run: wrangler whoami
+
+      - name: Import D1 database
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          D1_NAME: ${{ secrets.D1_NAME }}
+        run: |
+          if [ -f ./sql/dump.sql ]; then
+            echo "Importing SQL dump into D1..."
+            wrangler d1 import "$D1_NAME" --account-id "$CF_ACCOUNT_ID" --file ./sql/dump.sql
+          else
+            echo "No ./sql/dump.sql found. Skipping D1 import."
+          fi
+
+      - name: Deploy Worker
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+        run: wrangler deploy
