@@ -12,6 +12,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { CAPTAIN_DISPLAY } from "@/lib/i18n";
 import { relativeTime } from "@/lib/members";
+import { api } from "@/lib/client";
 import {
   CalendarPlus,
   LogIn,
@@ -57,7 +58,7 @@ export default function LogsSheet({
 
   const load = useCallback(async () => {
     try {
-      const r = await fetch("/api/logs?limit=200", { cache: "no-store" });
+      const r = await api("/api/logs?limit=200");
       if (!r.ok) throw new Error("bad");
       const data = await r.json();
       setLogs(data);

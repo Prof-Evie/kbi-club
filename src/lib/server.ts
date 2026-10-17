@@ -20,8 +20,16 @@ export function serializeMember(m: Prisma.MemberGetPayload<object>): MemberData 
   };
 }
 
-/** يستخرج هوية الكابتن من الكوكي — أو يرجع null */
+/**
+ * يستخرج هوية الكابتن: ترويسة Authorization: Bearer أولًا (تعمل حين
+ * تُحظر الكوكيز داخل إطارات المعاينة) ثم كوكي الجلسة — أو null.
+ */
 export function getActor(req: NextRequest): string | null {
+  const auth = req.headers.get("authorization");
+  if (auth?.toLowerCase().startsWith("bearer ")) {
+    const fromHeader = verifyToken(auth.slice(7).trim());
+    if (fromHeader) return fromHeader;
+  }
   return verifyToken(req.cookies.get(SESSION_COOKIE)?.value);
 }
 

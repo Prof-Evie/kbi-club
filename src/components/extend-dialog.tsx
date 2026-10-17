@@ -19,6 +19,7 @@ import {
   parseDay,
   todayDay,
 } from "@/lib/members";
+import { api } from "@/lib/client";
 import { toast } from "sonner";
 import { CalendarPlus, Loader2 } from "lucide-react";
 
@@ -56,7 +57,7 @@ export default function ExtendDialog({
     if (!member || saving || days < 1) return;
     setSaving(true);
     try {
-      const r = await fetch(`/api/members/${member.id}/extend`, {
+      const r = await api(`/api/members/${member.id}/extend`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ days }),

@@ -19,6 +19,7 @@ import {
   remainingDays,
   totalDaysBetween,
 } from "@/lib/members";
+import { api } from "@/lib/client";
 import { toast } from "sonner";
 import {
   ChevronLeft,
@@ -62,7 +63,7 @@ export default function DashboardView({
   /* ------- تحميل البيانات ------- */
   const load = useCallback(async () => {
     try {
-      const r = await fetch("/api/members", { cache: "no-store" });
+      const r = await api("/api/members");
       if (r.status === 401) {
         toast.error(t("sessionExpired"));
         onLogout();
@@ -125,7 +126,7 @@ export default function DashboardView({
     if (deleting) return;
     setDeleting(true);
     try {
-      const r = await fetch(`/api/members?ids=${[...selected].join(",")}`, {
+      const r = await api(`/api/members?ids=${[...selected].join(",")}`, {
         method: "DELETE",
       });
       if (!r.ok) {

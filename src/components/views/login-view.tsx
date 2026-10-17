@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CAPTAIN_DISPLAY, DictKey } from "@/lib/i18n";
+import { storeToken } from "@/lib/client";
 import {
   Eye,
   EyeOff,
@@ -43,6 +44,9 @@ export default function LoginView({
       });
       if (r.ok) {
         const data = await r.json();
+        // نحفظ التوكن في localStorage كخط احتياطي حين تُحظر الكوكيز
+        // (إطار معاينة عبر نطاق مختلف / Safari) ثم ننفّذ التوكن من الكوكي
+        if (data?.token) storeToken(String(data.token));
         onSuccess(String(data.actor));
       } else {
         setError(true);

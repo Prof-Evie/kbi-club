@@ -3,7 +3,9 @@ import { db } from "@/lib/db";
 import {
   SESSION_COOKIE,
   checkPassword,
+  isSecureRequest,
   resolveCaptain,
+  sessionCookieOptions,
   signToken,
 } from "@/lib/auth";
 import { logAction } from "@/lib/server";
@@ -19,14 +21,16 @@ export async function POST(req: NextRequest) {
     }
 
     const days = remember ? 30 : 1;
-    const res = NextResponse.json({ ok: true, actor: captain });
-    res.cookies.set(SESSION_COOKIE, signToken(captain, days), {
-      httpOnly: true,
-      sameSite: "lax",
-      path: "/",
-      secure: false,
-      ...(remember ? { maxAge: days * 24 * 60 * 60 } : {}),
-    });
+    // التوكن يُعاد في الجسم أيضًا — العميل يخزّنه في localStorage كخط
+    // احتياطي حين تُحظر الكوكيز (iframe عبر نطاق مختلف / Safari ITP).
+    const token = signToken(captain, days);
+
+    const res = NextResponse.json({ ok: true, actor: captain, token });
+    res.cookies.set(
+      SESSION_COOKIE,
+      token,
+      sessionCookieOptions(isSecureRequest(req), remember ? days : undefined)
+    );
 
     await logAction(captain, "LOGIN", null, remember ? "remember=true" : null);
     return res;

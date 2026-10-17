@@ -28,3 +28,22 @@ Stage Summary:
 - الحسابات: BKR وJihad بكلمة السر الموحدة المحددة من المستخدم
 - ملفات رئيسية: prisma/schema.prisma، src/lib/{auth,members,i18n,server}.ts، src/components/{kbi-app,days-bar,lang,member-form-dialog,extend-dialog,confirm-dialog,logs-sheet}.tsx، src/components/views/{login-view,dashboard-view,member-view}.tsx، 7 مسارات API
 - جاهز للرفع على Cloudflare لاحقًا (كود REST قياسي بدون اعتماديات خاصة بالمنصة؛ D1/OpenNext خطوة تالية منفصلة)
+
+---
+Task ID: 2
+Agent: Main Agent (Z.ai)
+Task: إصلاح خطأ «انتهت الجلسة» عند تسجيل الدخول
+
+Work Log:
+- شخّصت السبب من dev.log: الدخول ينجح (200) لكن GET /api/members يعيد 401 — المتصفح لا يحفظ كوكي SameSite=Lax لأن الموقع يُعرض داخل iframe عبر نطاق مختلف (معاينة المحادثة)، وتحظر الكوكيز كليًا يحدث في Safari (ITP)
+- أضفت src/lib/client.ts: تخزين التوكن في localStorage + دالة api() ترفق Authorization: Bearer تلقائيًا مع كل طلبات الـ API
+- auth.ts: أضفت isSecureRequest() (كشف x-forwarded-proto) وsessionCookieOptions() — على HTTPS يصبح الكوكي SameSite=None; Secure حتى يعمل داخل الإطارات
+- login route: يعيد التوكن في جسم الاستجابة ويضبط الكوكي بالخيارات الجديدة؛ logout route يحذف الكوكي بنفس السمات
+- server.ts: getActor يقرأ ترويسة Bearer أولًا ثم الكوكي
+- حدّثت كل استدعاءات fetch في العميل إلى api(): kbi-app، login-view (تخزين التوكن)، dashboard-view، member-view، extend-dialog، member-form-dialog، logs-sheet
+- kbi-app: شاشة انتظار قصيرة عند استعادة الجلسة من التوكن بدل وميض صفحة الدخول، وتنظيف التوكن عند 401
+- اختبار متصفح شامل: دخول BKR → لوحة تعمل، إعادة تحميل → الجلسة بقيت، حذف الكوكيز كليًا وإعادة التحميل → الجلسة بقيت عبر Bearer (هذه هي الحالة التي كانت تفشل)، خروج ينظّف التوكن، دخول jihad بأحرف صغيرة يعمل، إضافة مشترك + حذفه يعملان، لا أخطاء كونسول
+
+Stage Summary:
+- إصلاح جذري يعمل في كل السياقات: تبويب عادي، iframe عبر نطاق مختلف، وحتى مع حظر الكوكيز تمامًا
+- الجلسة: كوكي SameSite=None; Secure على HTTPS + توكن HMAC في localStorage يُرسل عبر Authorization — كلاهما موقّع بنفس السر وصلاحيته 30 يومًا (تذكرني) أو يوم واحد

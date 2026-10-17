@@ -21,6 +21,7 @@ import {
   totalDaysBetween,
   waLink,
 } from "@/lib/members";
+import { api } from "@/lib/client";
 import { toast } from "sonner";
 import {
   ArrowRight,
@@ -58,7 +59,7 @@ export default function MemberView({
     setLoading(true);
     setNotFound(false);
     try {
-      const r = await fetch(`/api/members/${id}`, { cache: "no-store" });
+      const r = await api(`/api/members/${id}`);
       if (r.status === 404) {
         setNotFound(true);
         return;
@@ -81,7 +82,7 @@ export default function MemberView({
     if (!member || deleting) return;
     setDeleting(true);
     try {
-      const r = await fetch(`/api/members/${member.id}`, { method: "DELETE" });
+      const r = await api(`/api/members/${member.id}`, { method: "DELETE" });
       if (!r.ok) {
         toast.error(t("errorGeneric"));
         return;

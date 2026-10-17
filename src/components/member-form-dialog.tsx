@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { MemberData, addDays, fmtDay, isValidPhone, parseDay, todayDay } from "@/lib/members";
+import { api } from "@/lib/client";
 import { toast } from "sonner";
 import { Loader2, UserPlus } from "lucide-react";
 
@@ -121,12 +122,12 @@ export default function MemberFormDialog({
         end,
       };
       const r = isEdit
-        ? await fetch(`/api/members/${member!.id}`, {
+        ? await api(`/api/members/${member!.id}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
           })
-        : await fetch("/api/members", {
+        : await api("/api/members", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),

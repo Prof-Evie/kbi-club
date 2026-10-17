@@ -64,3 +64,25 @@ export function verifyToken(
     return null;
   }
 }
+
+/** هل الطلب قادم عبر HTTPS؟ (المعاينة وCloudflare يمرّران x-forwarded-proto) */
+export function isSecureRequest(req: { headers: { get(n: string): string | null } }): boolean {
+  const proto = req.headers.get("x-forwarded-proto");
+  if (proto) return proto.split(",")[0].trim() === "https";
+  return false;
+}
+
+/**
+ * خيارات كوكي الجلسة.
+ * على HTTPS نستخدم SameSite=None; Secure حتى يعمل الكوكي داخل إطارات
+ * المعاينة (iframe عبر نطاق مختلف) — Lax يُحظر هناك فيفشل تسجيل الدخول.
+ */
+export function sessionCookieOptions(isHttps: boolean, maxAgeDays?: number) {
+  return {
+    httpOnly: true,
+    path: "/",
+    sameSite: (isHttps ? "none" : "lax") as "none" | "lax",
+    secure: isHttps,
+    ...(maxAgeDays ? { maxAge: Math.round(maxAgeDays * 86400) } : {}),
+  };
+}
