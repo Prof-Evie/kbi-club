@@ -7,7 +7,7 @@ Usage:
 
 Notes:
   - Requires Node.js and wrangler (bundled via npx is used).
-  - The script will call `npx wrangler login` which opens a browser for auth.
+  - The script will call `npx wrangler login` which opens a browser for auth when interactive.
   - The script parses the `database_id` line printed by `wrangler d1 create` and
     replaces the placeholder in `wrangler.jsonc`.
 #>
@@ -49,12 +49,16 @@ Write-Host "wrangler whoami (checks token permissions):" -ForegroundColor Gray
 try {
     $whoamiOut = & npx wrangler whoami 2>&1
     Write-Host $whoamiOut
+    if ($whoamiOut -match "User API Token") {
+        Write-Host "WARNING: Detected a User API Token. For non-interactive D1 creation you usually need an Account-level API token with D1 'Edit' permission." -ForegroundColor Yellow
+    }
 } catch {
     Write-Host "(wrangler whoami failed)" -ForegroundColor Yellow
 }
 
 # Build command arguments safely (invoke via `npx wrangler ...`)
-$args = @('wrangler','d1','create','kbiclub','--yes','--verbose')
+# NOTE: removed unsupported flags --yes and --verbose which cause "Unknown arguments" in some wrangler versions.
+$args = @('wrangler','d1','create','kbiclub')
 if ($accountArg) { $args += @('--account-id',$accountArg) }
 
 Write-Host "Running: npx $($args -join ' ')" -ForegroundColor Gray
@@ -99,7 +103,11 @@ if (-not $dbId) {
             Write-Host "(wrangler d1 list failed)" -ForegroundColor Yellow
         }
         if (-not $dbId) {
-            Write-Host "ERROR: Unable to create D1 database automatically. Possible causes: insufficient API token permissions (needs Account · D1 Databases: Edit), or D1 is unavailable for this account.\nOptions:\n 1) Create the D1 database manually in Cloudflare dashboard or via 'npx wrangler d1 create <name> --account-id <id>' with a token that has D1 permissions.\n 2) Set environment variable 'CF_D1_DATABASE_ID' to an existing D1 database id and re-run.\n3) Ensure the API token has 'Account: D1 Databases' edit permissions and try again." -ForegroundColor Red
+            Write-Host "ERROR: Unable to create D1 database automatically. Possible causes: insufficient API token permissions (needs Account · D1 Databases: Edit), or D1 is unavailable for this account." -ForegroundColor Red
+            Write-Host "Action: Create the D1 database manually in the Cloudflare dashboard or create an Account-level API token with these permissions and add it to GitHub Secrets as CF_API_TOKEN:" -ForegroundColor Red
+            Write-Host "  - Account: D1 Databases -> Edit" -ForegroundColor Red
+            Write-Host "  - Workers: Scripts -> Edit" -ForegroundColor Red
+            Write-Host "Or set CF_D1_DATABASE_ID in the environment to skip creation." -ForegroundColor Red
             exit 1
         }
     }
@@ -109,7 +117,7 @@ if ($LASTEXITCODE -ne 0) {
     ExitWith 4 "Failed to create D1 database. See output above." 
 }
 
-# Try to extract database_id from known output formats
+# Try to extract database_id from known output formats (again, in case it was filled during listing)
 $dbId = $null
 if ($createOut -match 'database_id\s*=\s*"?([0-9a-fA-F\-]{36})"?') { $dbId = $matches[1] }
 elseif ($createOut -match 'database_id\s*:\s*"?([0-9a-fA-F\-]{36})"?') { $dbId = $matches[1] }
