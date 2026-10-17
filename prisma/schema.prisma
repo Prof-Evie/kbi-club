@@ -1,0 +1,33 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// مشترك النادي
+model Member {
+  id        String   @id @default(cuid())
+  name      String
+  birth     DateTime? // تاريخ المواليد
+  height    Float? // الطول (سم)
+  weight    Float? // الوزن (كغ)
+  phone     String   @default("") // رقم الهاتف
+  type      String   @default("general") // general (عام) | private (خاص)
+  start     DateTime // بداية الاشتراك
+  end       DateTime // نهاية الاشتراك
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// سجل العمليات
+model Log {
+  id        String   @id @default(cuid())
+  action    String // LOGIN | CREATE | UPDATE | EXTEND | DELETE
+  actor     String // BKR | Jihad
+  target    String? // اسم المشترك (محفوظ نصيًا ليبقى السجل بعد الحذف)
+  details   String?
+  createdAt DateTime @default(now())
+}

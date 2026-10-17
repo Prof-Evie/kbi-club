@@ -1,0 +1,194 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* خط Cairo — مستضاف محليًا (متغير الوزن 400-900) */
+@font-face {
+  font-family: "Cairo";
+  font-style: normal;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url("/fonts/cairo-arabic.woff2") format("woff2");
+  unicode-range: U+0600-06FF, U+0750-077F, U+200C-200E, U+2010-2011, U+FB50-FDFF,
+    U+FE70-FE74, U+FE76-FEFC;
+}
+@font-face {
+  font-family: "Cairo";
+  font-style: normal;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url("/fonts/cairo-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215;
+}
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: "Cairo", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, "Noto Sans Arabic", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  /* ألوان KBI الذهبية */
+  --color-gold: #ffc821;
+  --color-gold-deep: #e0a600;
+  --color-gold-soft: #ffd44d;
+}
+
+:root {
+  --radius: 0.75rem;
+  /* ثيم داكن دائم — أسود KBI وذهبي */
+  --background: #070709;
+  --foreground: #f4f4f5;
+  --card: #101014;
+  --card-foreground: #f4f4f5;
+  --popover: #141419;
+  --popover-foreground: #f4f4f5;
+  --primary: #ffc821;
+  --primary-foreground: #0a0a0b;
+  --secondary: #1b1b21;
+  --secondary-foreground: #f4f4f5;
+  --muted: #17171c;
+  --muted-foreground: #9c9ca8;
+  --accent: #201f16;
+  --accent-foreground: #ffd44d;
+  --destructive: #ef4444;
+  --border: #232329;
+  --input: #26262d;
+  --ring: #ffc821;
+  --chart-1: #ffc821;
+  --chart-2: #22c55e;
+  --chart-3: #fb923c;
+  --chart-4: #ef4444;
+  --chart-5: #a1a1aa;
+  --sidebar: #101014;
+  --sidebar-foreground: #f4f4f5;
+  --sidebar-primary: #ffc821;
+  --sidebar-primary-foreground: #0a0a0b;
+  --sidebar-accent: #1b1b21;
+  --sidebar-accent-foreground: #f4f4f5;
+  --sidebar-border: #232329;
+  --sidebar-ring: #ffc821;
+}
+
+.dark {
+  --background: #070709;
+  --foreground: #f4f4f5;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-background text-foreground;
+    background-image: radial-gradient(
+        70rem 32rem at 50% -12%,
+        rgba(255, 200, 33, 0.055),
+        transparent 62%
+      ),
+      radial-gradient(
+        46rem 26rem at 100% 115%,
+        rgba(255, 200, 33, 0.03),
+        transparent 60%
+      );
+    background-attachment: fixed;
+    min-height: 100dvh;
+  }
+  ::selection {
+    background: rgba(255, 200, 33, 0.28);
+  }
+}
+
+/* شرائط تمرير أنيقة */
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a2a31;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3a3a44;
+}
+
+/* اهتزاز عند الخطأ */
+@keyframes kbi-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-7px);
+  }
+  40% {
+    transform: translateX(7px);
+  }
+  60% {
+    transform: translateX(-4px);
+  }
+  80% {
+    transform: translateX(4px);
+  }
+}
+.animate-shake {
+  animation: kbi-shake 0.45s ease-in-out;
+}
+
+/* توهج ذهبي للزراريات المهمة */
+.gold-glow {
+  box-shadow:
+    0 0 0 1px rgba(255, 200, 33, 0.35),
+    0 8px 30px -8px rgba(255, 200, 33, 0.35);
+}
+.gold-glow:hover {
+  box-shadow:
+    0 0 0 1px rgba(255, 200, 33, 0.55),
+    0 10px 38px -6px rgba(255, 200, 33, 0.5);
+}
+
+/* حقول التاريخ داكنة */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.75);
+  cursor: pointer;
+}
