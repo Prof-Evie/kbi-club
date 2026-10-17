@@ -1,8 +1,8 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useSyncExternalStore, type CSSProperties } from "react";
 import { useLang } from "@/components/lang";
-import { EXPIRING_SOON_DAYS, SubType, parseDay } from "@/lib/members";
+import { SubType, parseDay } from "@/lib/members";
 import { Clock3 } from "lucide-react";
 
 interface DaysBarProps {
@@ -48,81 +48,60 @@ function getSecondSnapshot(): number | null {
   return currentSecond;
 }
 
-/* ---------- درجة اللون حسب نفاد الاشتراك ----------
-   المربع يبدأ فارغًا ويمتلئ باللون كلما استُهلكت أيام الاشتراك:
-   استُهلك أقل من نصف الاشتراك    -> ذهبي
-   استُهلك نصفه أو أكثر           -> برتقالي (نصف متبقٍ = نصف تعبئة برتقالية)
-   استُهلك ثلاثة أرباعه أو أكثر   -> أحمر
-   انتهى                          -> تعبئة حمراء كاملة
-   مع أرضية أيام قليلة (آخر يومين أحمر دائمًا، وأقل من 5 أيام لا يبقى ذهبيًا)
-   للتناسق مع فلتر «قارب على الانتهاء». */
+/* ---------- لون مستمر على كامل مدى الاشتراك ----------
+   الشريط يمثّل الوقت المتبقي من الاشتراك:
+   يبدأ ممتلئًا بالكامل (اشتراك 30 أو 31 يومًا = ممتلئ باللون)،
+   ويكون في منتصفه تمامًا عند بقاء النصف (15 من 30)،
+   ثم ينقص مع مرور الوقت حتى ينفد لحظة الانتهاء.
+   اللون يتدرّج بسلاسة عبر كامل المدى بلا مراحل مفاجئة:
+   100% ذهبي ← 50% برتقالي ← 25% وأقل أحمر. */
 
-type DaysTone = "good" | "warn" | "bad" | "expired";
+type RGB = { r: number; g: number; b: number };
 
-function severityFor(r: number, consumed: number): DaysTone {
-  if (r <= 0) return "expired";
-  let sev: DaysTone =
-    consumed >= 0.75 ? "bad" : consumed >= 0.5 ? "warn" : "good";
-  if (r <= 2) sev = "bad";
-  else if (r <= EXPIRING_SOON_DAYS && sev === "good") sev = "warn";
-  return sev;
+const GOLD: RGB = { r: 255, g: 200, b: 33 }; // ذهبي الموقع #ffc821
+const ORANGE: RGB = { r: 251, g: 146, b: 60 }; // برتقالي #fb923c
+const RED: RGB = { r: 239, g: 68, b: 68 }; // أحمر #ef4444
+const ORANGE_SOFT: RGB = { r: 253, g: 186, b: 116 }; // نص برتقالي فاتح #fdba74
+const RED_SOFT: RGB = { r: 248, g: 113, b: 113 }; // نص أحمر فاتح #f87171
+
+function mix(a: RGB, b: RGB, t: number): RGB {
+  const k = Math.min(1, Math.max(0, t));
+  return {
+    r: Math.round(a.r + (b.r - a.r) * k),
+    g: Math.round(a.g + (b.g - a.g) * k),
+    b: Math.round(a.b + (b.b - a.b) * k),
+  };
 }
 
-/** لوحة ألوان موحدة حسب درجة الشدة */
-function toneFor(sev: DaysTone) {
-  if (sev === "expired") {
-    return {
-      box: "border-red-500/25 bg-red-500/[0.06]",
-      fill: "bg-red-500/[0.10]",
-      edge: "",
-      num: "text-red-400",
-      clock: "text-red-400/60",
-      dot: "",
-    };
+const rgb = (c: RGB, a = 1) =>
+  a >= 1 ? `rgb(${c.r} ${c.g} ${c.b})` : `rgb(${c.r} ${c.g} ${c.b} / ${a})`;
+
+/** لوحة اللون اللحظية حسب نسبة الوقت المتبقي (0..1) — تدرج مستمر بلا مراحل */
+function paletteFor(remain: number): { main: RGB; soft: RGB } {
+  if (remain >= 0.5) {
+    const t = (remain - 0.5) / 0.5; // 0.5..1.0 برتقالي ← ذهبي
+    return { main: mix(ORANGE, GOLD, t), soft: mix(ORANGE_SOFT, GOLD, t) };
   }
-  if (sev === "bad") {
-    return {
-      box: "border-red-500/25 bg-red-500/[0.05]",
-      fill: "bg-red-500/[0.16]",
-      edge: "bg-red-300/80",
-      num: "text-red-400",
-      clock: "text-red-300/80",
-      dot: "bg-red-400",
-    };
+  if (remain >= 0.25) {
+    const t = (remain - 0.25) / 0.25; // 0.25..0.5 أحمر ← برتقالي
+    return { main: mix(RED, ORANGE, t), soft: mix(RED_SOFT, ORANGE_SOFT, t) };
   }
-  if (sev === "warn") {
-    return {
-      box: "border-orange-400/25 bg-orange-400/[0.05]",
-      fill: "bg-orange-400/[0.16]",
-      edge: "bg-orange-300/80",
-      num: "text-orange-300",
-      clock: "text-orange-300/80",
-      dot: "bg-orange-400",
-    };
-  }
-  return {
-    box: "border-white/[0.08] bg-white/[0.03]",
-    fill: "bg-gold/[0.14]",
-    edge: "bg-gold/70",
-    num: "text-gold",
-    clock: "text-gold/75",
-    dot: "bg-gold",
-  };
+  return { main: RED, soft: RED_SOFT };
 }
 
 /** خلية رقم في العدّاد الكبير (يوم : ساعة : دقيقة : ثانية) */
 function CountCell({
   v,
   label,
-  numCls,
+  numStyle,
 }: {
   v: number | string;
   label: string;
-  numCls: string;
+  numStyle: CSSProperties;
 }) {
   return (
     <span className="inline-flex flex-col items-center rounded-lg border border-white/[0.07] bg-white/[0.05] px-2 py-1 min-w-[46px]">
-      <span className={`text-lg font-black tabular-nums leading-none ${numCls}`}>
+      <span className="text-lg font-black tabular-nums leading-none" style={numStyle}>
         {typeof v === "number" ? pad2(v) : v}
       </span>
       <span className="mt-0.5 text-[9px] font-bold text-muted-foreground leading-none">
@@ -133,8 +112,9 @@ function CountCell({
 }
 
 /**
- * مربع الاشتراك العصري: شريحة النوع + شريط تقدم متدرج + عدد الأيام
- * الكبير + عدّاد تنازلي حي بالثواني حتى لحظة نهاية الاشتراك.
+ * مربع الاشتراك العصري: شريحة النوع + شريط يمثّل الوقت المتبقي (ممتلئ عند
+ * البداية وينقص مع الوقت) بلون يتدرج باستمرار + عدد الأيام الكبير + عدّاد
+ * تنازلي حي بالثواني حتى لحظة نهاية الاشتراك.
  */
 export default function DaysBar({
   remaining,
@@ -144,7 +124,7 @@ export default function DaysBar({
   size = "sm",
   className = "",
 }: DaysBarProps) {
-  const { t } = useLang();
+  const { t, dir } = useLang();
 
   // ثانية حالية — null قبل الإقلاع (تُعرض شرطات بدل الأرقام)
   const nowSec = useSyncExternalStore(subscribeSecond, getSecondSnapshot, () => null);
@@ -153,28 +133,46 @@ export default function DaysBar({
   const r = Math.max(0, remaining);
 
   /* حدود الاشتراك بالمللي ثانية: من بداية يوم البداية إلى نهاية يوم الانتهاء.
-     التعبئة محسوبة من الساعة الحية نفسها التي يحركها العدّاد — فتتقدم
+     نسبة المتبقي محسوبة من الساعة الحية نفسها التي يحركها العدّاد — فتنقص
      مع مرور الساعات والدقائق والثواني فعليًا، ولا تنتظر تغيّر اليوم. */
   const endDayStart = parseDay(end).getTime();
   const startMs = endDayStart - (Math.max(1, total) - 1) * 86400000;
   const endMs = endDayStart + 86400000;
   const totalMs = Math.max(86400000, endMs - startMs);
 
-  // قبل إقلاع العدّاد نعرض قيمة الأيام، وبعدها تصبح التعبئة حية بالثانية
-  const consumedStatic =
-    total > 0 ? Math.min(1, Math.max(0, (total - r) / total)) : 0;
-  const consumed =
+  // نسبة الوقت المتبقي 0..1 — قبل إقلاع العدّاد تُحسب من الأيام (المتبقي ÷ الإجمالي)
+  const remainStatic = total > 0 ? Math.min(1, Math.max(0, r / total)) : 0;
+  const remain =
     now !== null
-      ? Math.min(1, Math.max(0, (now - startMs) / totalMs))
-      : consumedStatic;
+      ? Math.min(1, Math.max(0, (endMs - now) / totalMs))
+      : remainStatic;
 
-  // حد أدنى مرئي للتعبئة حتى يظهر المقياس من اليوم الأول
-  const pct = Math.max(3, consumed * 100);
-  // درجة اللون تتبع الاستهلاك الحي، وينقلب المربع «منتهيًا» لحظة وصول العدّاد إلى الصفر
+  // يصبح «منتهيًا» لحظة وصول العدّاد إلى الصفر دون إعادة تحميل
   const rLive = now !== null && now >= endMs ? 0 : r;
-  const sev = severityFor(rLive, consumed);
-  const expired = sev === "expired";
+  const expired = rLive <= 0;
   const live = !expired && now !== null;
+  // آخر يومين أحمر دائمًا مهما كانت النسبة (يحمي الاشتراكات القصيرة جدًا)
+  const urgent = !expired && rLive <= 2;
+
+  const pal = expired || urgent ? { main: RED, soft: RED_SOFT } : paletteFor(remain);
+
+  // عرض الشريط = نسبة الوقت المتبقي، بأرضية 3% حتى يظهر المقياس دائمًا
+  const pct = expired ? 100 : Math.max(3, remain * 100);
+
+  /* ---------- ألوان لحظية (style) بدل درجات Tailwind الثابتة ---------- */
+  const numStyle: CSSProperties = { color: rgb(pal.soft) };
+  const clockStyle: CSSProperties = { color: rgb(pal.soft, expired ? 0.6 : 0.75) };
+  const boxStyle: CSSProperties = expired
+    ? { borderColor: rgb(RED, 0.25), backgroundColor: rgb(RED, 0.06) }
+    : { borderColor: rgb(pal.main, 0.25), backgroundColor: rgb(pal.main, 0.05) };
+  // التعبئة: تدرّج يتوهّج عند الحافة المتحركة ويتناثر نحو القاعدة
+  const fillStyle: CSSProperties = expired
+    ? { background: rgb(RED, 0.1) }
+    : dir === "rtl"
+      ? { background: `linear-gradient(to left, ${rgb(pal.main, 0.07)}, ${rgb(pal.main, 0.42)})` }
+      : { background: `linear-gradient(to right, ${rgb(pal.main, 0.07)}, ${rgb(pal.main, 0.42)})` };
+  const edgeStyle: CSSProperties = { background: rgb(pal.soft, 0.85) };
+  const dotStyle: CSSProperties = { background: rgb(pal.main) };
 
   // العدّاد التنازلي حتى نهاية يوم الانتهاء (منتصف الليل التالي)
   const diff = now !== null ? Math.max(0, endMs - now) : 0;
@@ -183,7 +181,6 @@ export default function DaysBar({
   const mm = Math.floor((diff % 3600000) / 60000);
   const ss = Math.floor((diff % 60000) / 1000);
 
-  const tone = toneFor(sev);
   const chipCls =
     type === "general"
       ? "bg-gold/12 text-gold border-gold/30"
@@ -196,9 +193,10 @@ export default function DaysBar({
   const pulseDot = live && (
     <span className="relative inline-flex size-1.5 shrink-0">
       <span
-        className={`absolute inline-flex h-full w-full rounded-full opacity-50 animate-ping ${tone.dot}`}
+        className="absolute inline-flex h-full w-full rounded-full opacity-50 animate-ping"
+        style={dotStyle}
       />
-      <span className={`relative inline-flex size-1.5 rounded-full ${tone.dot}`} />
+      <span className="relative inline-flex size-1.5 rounded-full" style={dotStyle} />
     </span>
   );
 
@@ -208,7 +206,8 @@ export default function DaysBar({
       <div
         role="img"
         aria-label={aria}
-        className={`relative overflow-hidden rounded-2xl border p-4 ${tone.box} ${className}`}
+        className={`relative overflow-hidden rounded-2xl border p-4 ${className}`}
+        style={boxStyle}
       >
         {/* شريط التقدم */}
         {!expired ? (
@@ -217,15 +216,14 @@ export default function DaysBar({
             style={{ width: `${pct}%` }}
             aria-hidden
           >
+            <div className="absolute inset-0" style={fillStyle} />
             <div
-              className={`absolute inset-0 ltr:bg-gradient-to-r rtl:bg-gradient-to-l ${tone.fill}`}
-            />
-            <div
-              className={`absolute inset-y-0 end-0 w-[3px] rounded-full ${tone.edge} ${live ? "animate-pulse" : ""}`}
+              className={`absolute inset-y-0 end-0 w-[3px] rounded-full ${live ? "animate-pulse" : ""}`}
+              style={edgeStyle}
             />
           </div>
         ) : (
-          <div className={`absolute inset-0 ${tone.fill}`} aria-hidden />
+          <div className="absolute inset-0" style={fillStyle} aria-hidden />
         )}
 
         <div className="relative flex items-center justify-between gap-3">
@@ -238,17 +236,17 @@ export default function DaysBar({
             </span>
             <div dir="ltr" className="flex items-center gap-1.5">
               {!expired && (
-                <CountCell v={now === null ? "--" : d} label={t("dayShort")} numCls={tone.num} />
+                <CountCell v={now === null ? "--" : d} label={t("dayShort")} numStyle={numStyle} />
               )}
-              <CountCell v={now === null ? "--" : hh} label={t("unitHour")} numCls={tone.num} />
-              <CountCell v={now === null ? "--" : mm} label={t("unitMin")} numCls={tone.num} />
-              <CountCell v={now === null ? "--" : ss} label={t("unitSec")} numCls={tone.num} />
+              <CountCell v={now === null ? "--" : hh} label={t("unitHour")} numStyle={numStyle} />
+              <CountCell v={now === null ? "--" : mm} label={t("unitMin")} numStyle={numStyle} />
+              <CountCell v={now === null ? "--" : ss} label={t("unitSec")} numStyle={numStyle} />
             </div>
           </div>
 
           {/* الأيام المتبقية */}
           <div className="text-end shrink-0 flex flex-col items-end gap-1">
-            <span className={`text-4xl font-black tabular-nums leading-none ${tone.num}`}>
+            <span className="text-4xl font-black tabular-nums leading-none" style={numStyle}>
               {r}
             </span>
             <span className="text-[11px] font-bold text-muted-foreground leading-none">
@@ -265,7 +263,8 @@ export default function DaysBar({
     <div
       role="img"
       aria-label={aria}
-      className={`relative overflow-hidden rounded-xl border h-11 ${tone.box} ${className}`}
+      className={`relative overflow-hidden rounded-xl border h-11 ${className}`}
+      style={boxStyle}
     >
       {/* شريط التقدم */}
       {!expired ? (
@@ -274,15 +273,14 @@ export default function DaysBar({
           style={{ width: `${pct}%` }}
           aria-hidden
         >
+          <div className="absolute inset-0" style={fillStyle} />
           <div
-            className={`absolute inset-0 ltr:bg-gradient-to-r rtl:bg-gradient-to-l ${tone.fill}`}
-          />
-          <div
-            className={`absolute inset-y-0 end-0 w-[2px] rounded-full ${tone.edge} ${live ? "animate-pulse" : ""}`}
+            className={`absolute inset-y-0 end-0 w-[2px] rounded-full ${live ? "animate-pulse" : ""}`}
+            style={edgeStyle}
           />
         </div>
       ) : (
-        <div className={`absolute inset-0 ${tone.fill}`} aria-hidden />
+        <div className="absolute inset-0" style={fillStyle} aria-hidden />
       )}
 
       <div className="relative h-full flex items-center gap-2 px-2.5">
@@ -300,7 +298,8 @@ export default function DaysBar({
         {/* العدّاد التنازلي الحي */}
         <span
           dir="ltr"
-          className={`inline-flex items-center gap-1 text-[11px] font-bold tabular-nums ${tone.clock}`}
+          className="inline-flex items-center gap-1 text-[11px] font-bold tabular-nums"
+          style={clockStyle}
           title={t("untilEnd")}
         >
           <Clock3 className="size-3 shrink-0" />
@@ -316,7 +315,7 @@ export default function DaysBar({
 
         {/* عدد الأيام */}
         <span className="flex items-baseline gap-1 shrink-0">
-          <span className={`text-lg font-black tabular-nums leading-none ${tone.num}`}>
+          <span className="text-lg font-black tabular-nums leading-none" style={numStyle}>
             {r}
           </span>
           <span className="text-[10px] font-bold text-muted-foreground leading-none">
