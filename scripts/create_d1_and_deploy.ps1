@@ -53,11 +53,11 @@ try {
     Write-Host "(wrangler whoami failed)" -ForegroundColor Yellow
 }
 
-# Build command arguments safely
-$args = @('d1','create','kbiclub','--yes','--verbose')
+# Build command arguments safely (invoke via `npx wrangler ...`)
+$args = @('wrangler','d1','create','kbiclub','--yes','--verbose')
 if ($accountArg) { $args += @('--account-id',$accountArg) }
 
-Write-Host "Running: npx wrangler $($args -join ' ')" -ForegroundColor Gray
+Write-Host "Running: npx $($args -join ' ')" -ForegroundColor Gray
 try {
     $createOut = & npx @args 2>&1
 } catch {
@@ -80,7 +80,7 @@ if (-not $dbId) {
     } else {
         Write-Host "Attempting to list existing D1 databases for debugging..." -ForegroundColor Yellow
         try {
-            $listArgs = @('d1','list','--json')
+            $listArgs = @('wrangler','d1','list','--json')
             if ($accountArg) { $listArgs += @('--account-id',$accountArg) }
             $listOut = & npx @listArgs 2>&1
             Write-Host $listOut
