@@ -38,8 +38,12 @@ if (-not $env:CF_API_TOKEN) {
 # Export token for wrangler
 $env:CLOUDFLARE_API_TOKEN = $env:CF_API_TOKEN
 
-Write-Host "Creating D1 database named 'kbi-db' (non-interactive)..." -ForegroundColor Yellow
-$createOut = & npx wrangler d1 create kbi-db --yes 2>&1
+Write-Host "Creating D1 database named 'kbiclub' (non-interactive)..." -ForegroundColor Yellow
+$accountArg = ''
+if ($env:CF_ACCOUNT_ID) { $accountArg = "--account-id $env:CF_ACCOUNT_ID" } elseif ($env:CLOUDFLARE_ACCOUNT_ID) { $accountArg = "--account-id $env:CLOUDFLARE_ACCOUNT_ID" }
+$createCmd = "npx wrangler d1 create kbiclub --yes $accountArg"
+Write-Host "Running: $createCmd" -ForegroundColor Gray
+$createOut = Invoke-Expression $createCmd 2>&1
 if ($LASTEXITCODE -ne 0) {
     Write-Host $createOut
     ExitWith 4 "Failed to create D1 database. See output above." 

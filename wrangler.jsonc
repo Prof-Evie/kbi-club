@@ -22,6 +22,7 @@
   },
 
   "compatibility_date": "2025-09-23",
+  "account_id": "006b38604d178cbe259545ee944ff900",
   "compatibility_flags": ["nodejs_compat"],
 
   // قاعدة بيانات D1 (بديل SQLite على Cloudflare)
@@ -30,7 +31,7 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "kbi-db",
+      "database_name": "kbiclub",
       "database_id": "PASTE_YOUR_D1_DATABASE_ID_HERE"
     }
   ],
