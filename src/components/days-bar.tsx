@@ -2,13 +2,12 @@
 
 import { useSyncExternalStore } from "react";
 import { useLang } from "@/components/lang";
-import { MemberStatus, SubType, parseDay } from "@/lib/members";
+import { EXPIRING_SOON_DAYS, SubType, parseDay } from "@/lib/members";
 import { Clock3 } from "lucide-react";
 
 interface DaysBarProps {
   remaining: number;
   total: number;
-  status: MemberStatus;
   /** نوع الاشتراك — يظهر كشريحة داخل المربع */
   type: SubType;
   /** تاريخ الانتهاء YYYY-MM-DD — يحسب منه العدّاد التنازلي الحي */
@@ -49,9 +48,28 @@ function getSecondSnapshot(): number | null {
   return currentSecond;
 }
 
-/** لوحة ألوان موحدة حسب حالة الاشتراك */
-function toneFor(status: MemberStatus) {
-  if (status === "expired") {
+/* ---------- درجة اللون حسب نسبة الأيام المتبقية ----------
+   المربع يمتلئ باللون بحسب ما تبقى من الاشتراك فعليًا:
+   أكثر من نصف الاشتراك متبقٍ  -> ذهبي (باقي الكثير)
+   نصف الاشتراك أو أقل متبقٍ   -> برتقالي (مثال: نصف الاشتراك = نصف تعبئة برتقالية)
+   ربع الاشتراك أو أقل متبقٍ   -> أحمر (قارب على النهاية)
+   منتهي                       -> تعبئة حمراء كاملة
+   مع أرضية أيام قليلة (آخر يومين أحمر دائمًا، وأقل من 5 أيام لا يبقى ذهبيًا)
+   حتى يبقى متناسقًا مع فلتر «قارب على الانتهاء». */
+
+type DaysTone = "good" | "warn" | "bad" | "expired";
+
+function severityFor(r: number, ratio: number): DaysTone {
+  if (r <= 0) return "expired";
+  let sev: DaysTone = ratio > 0.5 ? "good" : ratio > 0.25 ? "warn" : "bad";
+  if (r <= 2) sev = "bad";
+  else if (r <= EXPIRING_SOON_DAYS && sev === "good") sev = "warn";
+  return sev;
+}
+
+/** لوحة ألوان موحدة حسب درجة الشدة */
+function toneFor(sev: DaysTone) {
+  if (sev === "expired") {
     return {
       box: "border-red-500/25 bg-red-500/[0.06]",
       fill: "bg-red-500/[0.10]",
@@ -61,7 +79,17 @@ function toneFor(status: MemberStatus) {
       dot: "",
     };
   }
-  if (status === "expiring") {
+  if (sev === "bad") {
+    return {
+      box: "border-red-500/25 bg-red-500/[0.05]",
+      fill: "bg-red-500/[0.16]",
+      edge: "bg-red-300/80",
+      num: "text-red-400",
+      clock: "text-red-300/80",
+      dot: "bg-red-400",
+    };
+  }
+  if (sev === "warn") {
     return {
       box: "border-orange-400/25 bg-orange-400/[0.05]",
       fill: "bg-orange-400/[0.16]",
@@ -110,7 +138,6 @@ function CountCell({
 export default function DaysBar({
   remaining,
   total,
-  status,
   type,
   end,
   size = "sm",
@@ -126,7 +153,9 @@ export default function DaysBar({
   const ratio = total > 0 ? Math.min(1, Math.max(0, r / total)) : 0;
   // حد أدنى مرئي لشريط التقدم ما دام هناك يوم متبقٍ
   const pct = r > 0 ? Math.max(3, ratio * 100) : 0;
-  const expired = status === "expired";
+  // درجة اللون تتحدد بنسبة الأيام المتبقية من الاشتراك
+  const sev = severityFor(r, ratio);
+  const expired = sev === "expired";
   const live = !expired && now !== null;
 
   // لحظة الانتهاء الفعلية = نهاية يوم تاريخ الانتهاء (23:59:59.999)
@@ -137,7 +166,7 @@ export default function DaysBar({
   const mm = Math.floor((diff % 3600000) / 60000);
   const ss = Math.floor((diff % 60000) / 1000);
 
-  const tone = toneFor(status);
+  const tone = toneFor(sev);
   const chipCls =
     type === "general"
       ? "bg-gold/12 text-gold border-gold/30"

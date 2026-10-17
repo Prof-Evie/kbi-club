@@ -498,7 +498,6 @@ function MemberCard({
 }) {
   const remaining = remainingDays(member.end);
   const total = totalDaysBetween(member.start, member.end);
-  const status = memberStatus(member.end);
 
   return (
     <div
@@ -560,7 +559,6 @@ function MemberCard({
         <DaysBar
           remaining={remaining}
           total={total}
-          status={status}
           type={member.type}
           end={member.end}
         />

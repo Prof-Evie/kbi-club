@@ -229,7 +229,6 @@ export default function MemberView({
           <DaysBar
             remaining={remaining}
             total={total}
-            status={status}
             type={member.type}
             end={member.end}
             size="lg"
