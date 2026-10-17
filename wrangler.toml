@@ -1,0 +1,7 @@
+name = "kbiclub"
+main = "src/index.js"
+compatibility_date = "2026-10-17"
+
+[[d1_databases]]
+binding = "MY_D1"
+database_name = "kbiclub"
