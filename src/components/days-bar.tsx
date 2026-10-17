@@ -220,7 +220,9 @@ export default function DaysBar({
             <div
               className={`absolute inset-0 ltr:bg-gradient-to-r rtl:bg-gradient-to-l ${tone.fill}`}
             />
-            <div className={`absolute inset-y-0 end-0 w-[3px] rounded-full ${tone.edge}`} />
+            <div
+              className={`absolute inset-y-0 end-0 w-[3px] rounded-full ${tone.edge} ${live ? "animate-pulse" : ""}`}
+            />
           </div>
         ) : (
           <div className={`absolute inset-0 ${tone.fill}`} aria-hidden />
@@ -275,7 +277,9 @@ export default function DaysBar({
           <div
             className={`absolute inset-0 ltr:bg-gradient-to-r rtl:bg-gradient-to-l ${tone.fill}`}
           />
-          <div className={`absolute inset-y-0 end-0 w-[2px] rounded-full ${tone.edge}`} />
+          <div
+            className={`absolute inset-y-0 end-0 w-[2px] rounded-full ${tone.edge} ${live ? "animate-pulse" : ""}`}
+          />
         </div>
       ) : (
         <div className={`absolute inset-0 ${tone.fill}`} aria-hidden />
