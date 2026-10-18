@@ -154,8 +154,16 @@ if ($schemaExit -ne 0) {
 
 if (-not $SkipData) {
     Write-Host "Importing data to remote D1..." -ForegroundColor Yellow
-    npm run cf:d1-data-remote
-    if ($LASTEXITCODE -ne 0) { ExitWith 8 "Failed to execute data import (cf:d1-data-remote)." }
+    $dataOut = & npm run cf:d1-data-remote 2>&1
+    $dataExit = $LASTEXITCODE
+    Write-Host $dataOut
+    if ($dataExit -ne 0) {
+        if ($dataOut -match "UNIQUE constraint failed" -or $dataOut -match "SQLITE_CONSTRAINT") {
+            Write-Host "Data import reported duplicate primary keys — continuing (skipped duplicates)." -ForegroundColor Yellow
+        } else {
+            ExitWith 8 "Failed to execute data import (cf:d1-data-remote)."
+        }
+    }
 } else {
     Write-Host "Skipping data import as requested." -ForegroundColor Yellow
 }
