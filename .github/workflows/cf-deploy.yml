@@ -16,6 +16,12 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Install Bun (required by OpenNext build)
+        run: |
+          curl -fsSL https://bun.sh/install | bash
+          echo "BUN_INSTALL=$HOME/.bun" >> $GITHUB_ENV
+          echo "$HOME/.bun/bin" >> $GITHUB_PATH
+
       - name: Install dependencies
         run: npm ci
 
