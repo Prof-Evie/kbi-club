@@ -38,7 +38,15 @@ if (-not $env:CF_API_TOKEN) {
 # Export token for wrangler
 $env:CLOUDFLARE_API_TOKEN = $env:CF_API_TOKEN
 
-Write-Host "Creating D1 database named 'kbiclub' (non-interactive)..." -ForegroundColor Yellow
+# If user provided an existing D1 database id, skip creation and use it
+$dbId = $null
+if ($env:CF_D1_DATABASE_ID) {
+    Write-Host "CF_D1_DATABASE_ID present in environment; will skip creation and use that database id." -ForegroundColor Green
+    $dbId = $env:CF_D1_DATABASE_ID
+} else {
+    Write-Host "Creating D1 database named 'kbiclub' (non-interactive)..." -ForegroundColor Yellow
+}
+
 $accountArg = $null
 if ($env:CF_ACCOUNT_ID) { $accountArg = $env:CF_ACCOUNT_ID } elseif ($env:CLOUDFLARE_ACCOUNT_ID) { $accountArg = $env:CLOUDFLARE_ACCOUNT_ID }
 
@@ -56,32 +64,28 @@ try {
     Write-Host "(wrangler whoami failed)" -ForegroundColor Yellow
 }
 
-# Build command arguments safely (invoke via `npx wrangler ...`)
-# NOTE: removed unsupported flags --yes and --verbose which cause "Unknown arguments" in some wrangler versions.
-$args = @('wrangler','d1','create','kbiclub')
-if ($accountArg) { $args += @('--account-id',$accountArg) }
-
-Write-Host "Running: npx $($args -join ' ')" -ForegroundColor Gray
-try {
-    $createOut = & npx @args 2>&1
-} catch {
-    $createOut = $_.Exception.Message
-}
-Write-Host "Create output:" -ForegroundColor Gray
-Write-Host $createOut
-
-# Try to parse database_id from output
-$dbId = $null
-if ($createOut -match 'database_id\s*=\s*"?([0-9a-fA-F\-]{36})"?') { $dbId = $matches[1] }
-elseif ($createOut -match 'database_id\s*:\s*"?([0-9a-fA-F\-]{36})"?') { $dbId = $matches[1] }
-elseif ($createOut -match '([0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12})') { $dbId = $matches[1] }
-
 if (-not $dbId) {
-    Write-Host "Could not parse database_id from wrangler output." -ForegroundColor Yellow
-    if ($env:CF_D1_DATABASE_ID) {
-        Write-Host "Found CF_D1_DATABASE_ID in environment; using that value." -ForegroundColor Green
-        $dbId = $env:CF_D1_DATABASE_ID
-    } else {
+    # Build command arguments safely (invoke via `npx wrangler ...`)
+    # NOTE: removed unsupported flags --yes and --verbose which cause "Unknown arguments" in some wrangler versions.
+    $args = @('wrangler','d1','create','kbiclub')
+    if ($accountArg) { $args += @('--account-id',$accountArg) }
+
+    Write-Host "Running: npx $($args -join ' ')" -ForegroundColor Gray
+    try {
+        $createOut = & npx @args 2>&1
+    } catch {
+        $createOut = $_.Exception.Message
+    }
+    Write-Host "Create output:" -ForegroundColor Gray
+    Write-Host $createOut
+
+    # Try to parse database_id from output
+    if ($createOut -match 'database_id\s*=\s*"?([0-9a-fA-F\-]{36})"?') { $dbId = $matches[1] }
+    elseif ($createOut -match 'database_id\s*:\s*"?([0-9a-fA-F\-]{36})"?') { $dbId = $matches[1] }
+    elseif ($createOut -match '([0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12})') { $dbId = $matches[1] }
+
+    if (-not $dbId) {
+        Write-Host "Could not parse database_id from wrangler output." -ForegroundColor Yellow
         Write-Host "Attempting to list existing D1 databases for debugging..." -ForegroundColor Yellow
         try {
             $listArgs = @('wrangler','d1','list','--json')
@@ -117,15 +121,9 @@ if ($LASTEXITCODE -ne 0) {
     ExitWith 4 "Failed to create D1 database. See output above." 
 }
 
-# Try to extract database_id from known output formats (again, in case it was filled during listing)
-$dbId = $null
-if ($createOut -match 'database_id\s*=\s*"?([0-9a-fA-F\-]{36})"?') { $dbId = $matches[1] }
-elseif ($createOut -match 'database_id\s*:\s*"?([0-9a-fA-F\-]{36})"?') { $dbId = $matches[1] }
-elseif ($createOut -match '([0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12})') { $dbId = $matches[1] }
-
 if (-not $dbId) {
     Write-Host $createOut
-    ExitWith 5 "Could not parse database_id from wrangler output. Please run 'npx wrangler d1 create kbi-db' manually and paste the database_id into wrangler.jsonc" 
+    ExitWith 5 "Could not determine D1 database id. Set CF_D1_DATABASE_ID in Secrets or create the D1 database manually and set its id in wrangler.jsonc." 
 }
 
 Write-Host "Found D1 database_id: $dbId" -ForegroundColor Green
