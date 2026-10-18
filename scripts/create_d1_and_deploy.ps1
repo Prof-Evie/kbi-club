@@ -141,8 +141,16 @@ Set-Content -Path $wranglerPath -Value $new -Encoding UTF8
 Write-Host "Updated wrangler.jsonc with new database_id." -ForegroundColor Green
 
 Write-Host "Importing schema to remote D1..." -ForegroundColor Yellow
-npm run cf:d1-schema-remote
-if ($LASTEXITCODE -ne 0) { ExitWith 7 "Failed to execute schema import (cf:d1-schema-remote)." }
+$schemaOut = & npm run cf:d1-schema-remote 2>&1
+$schemaExit = $LASTEXITCODE
+Write-Host $schemaOut
+if ($schemaExit -ne 0) {
+    if ($schemaOut -match "already exists") {
+        Write-Host "Schema import reported tables already exist — continuing." -ForegroundColor Yellow
+    } else {
+        ExitWith 7 "Failed to execute schema import (cf:d1-schema-remote)."
+    }
+}
 
 if (-not $SkipData) {
     Write-Host "Importing data to remote D1..." -ForegroundColor Yellow
